@@ -10,6 +10,7 @@ class GameState:
         self.p1_score = 0
         self.p2_score = 0
         self.game_score = 0
+        self.prac_high_score = 0
 
     def print(self):
         """prints current game standing to the console"""
@@ -18,6 +19,10 @@ class GameState:
     def incP1(self):
         """increments P1 score by 1"""
         self.p1_score += 1
+
+    def checkGameScore(self):
+        if self.prac_high_score < self.game_score:
+            self.prac_high_score = self.game_score
 
     def incP2(self):
         """increments P2 score by 1"""

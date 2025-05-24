@@ -7,8 +7,8 @@ class Ball:
     color = (255,255,255)
     
     # initial speeds
-    speed_x = 4
-    speed_y = 4 
+    speed_x = 5
+    speed_y = 5 
     
     def __init__(self, SCREEN_WIDTH, SCREEN_HEIGHT):
         """initialize the ball using the screen width and height"""
@@ -43,3 +43,7 @@ class Ball:
             self.rect.left = paddle.rect.right
         elif (paddle.type == "right"):
             self.rect.right = paddle.rect.left
+
+    def bounceRightWall(self):
+        """special bounce for practice mode"""
+        self.dx *= -1
