@@ -9,7 +9,7 @@ class GameState:
     def __init__(self):
         self.p1_score = 0
         self.p2_score = 0
-        self.game_score = 0
+        self.rally_score = 0
         self.prac_high_score = 0
 
     def print(self):
@@ -20,9 +20,9 @@ class GameState:
         """increments P1 score by 1"""
         self.p1_score += 1
 
-    def checkGameScore(self):
-        if self.prac_high_score < self.game_score:
-            self.prac_high_score = self.game_score
+    def checkRallyScore(self):
+        if self.prac_high_score < self.rally_score:
+            self.prac_high_score = self.rally_score
 
     def incP2(self):
         """increments P2 score by 1"""
@@ -38,10 +38,10 @@ class GameState:
             self.p1_score = 0
             self.p2_score = 0
     
-    def incGameScore(self):
+    def incRallyScore(self):
         """increments the total game score (rally score)"""
-        self.game_score += 1
+        self.rally_score += 1
 
-    def resetGameScore(self):
+    def resetRallyScore(self):
         """resets the total game score (rally score)"""
-        self.game_score = 0
+        self.rally_score = 0

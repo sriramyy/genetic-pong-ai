@@ -7,8 +7,8 @@ class Ball:
     color = (255,255,255)
     
     # initial speeds
-    speed_x = 5
-    speed_y = 5 
+    speed_x = 6
+    speed_y = 6
     
     def __init__(self, SCREEN_WIDTH, SCREEN_HEIGHT):
         """initialize the ball using the screen width and height"""
