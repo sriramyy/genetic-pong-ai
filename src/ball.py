@@ -47,3 +47,8 @@ class Ball:
     def bounceRightWall(self):
         """special bounce for practice mode"""
         self.dx *= -1
+
+    def bounceRightWallRandom(self):
+        """makes right wall bounce random"""
+        self.dx *= -1
+        self.dy *= random.choice([random.uniform(-1.5, -0.8), random.uniform(0.8, 1.5)])

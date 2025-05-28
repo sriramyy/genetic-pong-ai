@@ -4,13 +4,14 @@ from ball import Ball
 from gamestate import GameState
 from aipaddle import AIPaddle
 import random
+import numpy as np
 
 # init pygame
 pygame.init()
 
 # constants
-SCREEN_WIDTH = 600
-SCREEN_HEIGHT = 400
+SCREEN_WIDTH = 750
+SCREEN_HEIGHT = 450
 BACKGROUND_COLOR = (0,0,0)
 TEXT_COLOR = (100, 100, 100)
 FPS = 60
@@ -183,9 +184,8 @@ def startGame(canvas, clock, type):
 def startAITraining(canvas, clock):
     """visualizes and runs the genetic algorithm AI simulation with a variable amount of paddles"""
 
-    POPULATION = 50
-    GENERATIONS = 10
-    SELECTION_AMT = 5
+    POPULATION = 100
+    GENERATIONS = 50
     PADDLE_X = 50
     MUTATION_RATE = 0.1
     MUTATION_STRENGTH = 0.5 
@@ -193,9 +193,13 @@ def startAITraining(canvas, clock):
     # create initial population
     paddles = []
     for i in range(POPULATION):
-        color = (255, 255, 255, int(50 + 205 * (i / POPULATION)))
+        color = (random.uniform(0,255), random.uniform(0,255), random.uniform(0,255), 70)
         paddle = AIPaddle(PADDLE_X, (SCREEN_HEIGHT - Paddle.height)//2, color=color)
         paddles.append(paddle)
+
+    prev_high_score = 0
+    prev_avr_weights = []
+    overall_high_score = (0, 0) # high score, generation achieved in 
 
     for generation in range(GENERATIONS):
         # reset all paddles and the ball
@@ -209,6 +213,10 @@ def startAITraining(canvas, clock):
 
         running = True
         frame = 0
+        current_score = 0
+        highest_score = 0
+        best_paddles = []
+
         while running and any(paddle.alive for paddle in paddles):
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -220,7 +228,7 @@ def startAITraining(canvas, clock):
             for paddle in paddles:
                 if not paddle.alive:
                     continue
-                move = paddle.think(ball.rect.centery, ball.dy, paddle.y_pos, 0)
+                move = paddle.think(SCREEN_HEIGHT, ball) # FUNCTION TO THINK (simple perceptron)
                 if move == -1:
                     paddle.y_pos -= paddle.speed
                 elif move == 1:
@@ -234,9 +242,10 @@ def startAITraining(canvas, clock):
             if ball.rect.top <= 0 or ball.rect.bottom >= SCREEN_HEIGHT:
                 ball.bounceWall()
             if ball.rect.right >= SCREEN_WIDTH:
-                ball.bounceRightWall()
+                ball.bounceRightWallRandom()
 
             # if the ball reaches the left wall, check which paddles hit it
+            
             if ball.rect.left <= 50:
                 survivors = []
                 for paddle in paddles:
@@ -251,6 +260,7 @@ def startAITraining(canvas, clock):
                 if survivors:
                     ball.rect.left = survivors[0].rect.right
                     ball.bouncePaddle(survivors[0])
+                    current_score += 1
                 else:
                     ball.reset()
 
@@ -263,19 +273,67 @@ def startAITraining(canvas, clock):
                 surf.fill(paddle.color)
                 canvas.blit(surf, (paddle.x_pos, paddle.y_pos))
             pygame.draw.ellipse(canvas, ball.color, ball.rect)
-            gen_text = player_font.render(f"Gen {generation+1}", True, (255,255,0))
-            alive_text = player_font.render(f"{(sum(paddle.alive for paddle in paddles)/POPULATION)*100}% Alive ({sum(paddle.alive for paddle in paddles)})", True, (255,255,0))
-            canvas.blit(gen_text, (100, 10))
-            canvas.blit(alive_text, (100, 40))
+            gen_text = player_font.render(f"Gen {generation+1} | SCR: {current_score} | PG SCR: {prev_high_score}", True, (255,255,0))
+            alive_percent = round((sum(paddle.alive for paddle in paddles) / POPULATION) * 100, 0) # find percentage alive
+            alive_text = player_font.render(f"{alive_percent:.0f}% Alive ({sum(paddle.alive for paddle in paddles)} paddle(s))", True, (255,255,0))
+            stats_text = player_font.render(f"Overall HS: {overall_high_score[0]} in Gen {overall_high_score[1]}", True, (255,255,0))
+            stats_two_text = player_font.render(f"A.WGTS (PG): {prev_avr_weights}", True, (255,255,0))
+            canvas.blit(gen_text, (80, 10))
+            canvas.blit(alive_text, (80, 40))
+            canvas.blit(stats_text, (80, 70))
+            canvas.blit(stats_two_text, (80, 100))
 
             pygame.display.flip()
             clock.tick(FPS)
             frame += 1
 
-        # print best score
-        print(f"Generation {generation+1}: Best Score = {max(paddle.score for paddle in paddles)}")
+        # ---- GENETIC ALGORITHM ----
 
-        # ---- GENETIC ALGORITHM ---- 
+        # finds and pritns best score
+        for paddle in paddles:
+            if paddle.score > highest_score:
+                highest_score = paddle.score
+                best_paddles.clear()
+                best_paddles.append(paddle)
+            elif paddle.score == highest_score:
+                best_paddles.append(paddle)
+
+        prev_high_score = highest_score
+
+        # check if this is the overall highest score
+        if highest_score >= overall_high_score[0]:
+            overall_high_score = (highest_score, generation+1)
+
+        print(f"Generation {generation+1}: Best Score = {highest_score}")
+        print(f"A total of {len(best_paddles)} paddles shared this high score")
+
+        # length of best_paddles -> number of parents
+        # so len(best_paddles)/POPULATION children per parent
+        children_per_parent = int(POPULATION/len(best_paddles))
+
+        # clear the paddles
+        paddles.clear()
+
+        paddle_weights = []
+
+        for paddle in best_paddles:
+            # set a color for this parent
+            color = (random.uniform(0,255), random.uniform(0,255), random.uniform(0,255), 70)
+            # print the parent weights
+            paddle_weights.append(paddle.weights)
+            for child in range(children_per_parent):
+                new_weights = paddle.mutate(MUTATION_RATE, MUTATION_STRENGTH)
+                new_paddle = AIPaddle(PADDLE_X, (SCREEN_HEIGHT - Paddle.height)//2, color, new_weights)
+                paddles.append(new_paddle)
+        
+        # calculate average weights
+        # Calculate average weights for each weight index across all best paddles
+        if paddle_weights:
+            avg_weights = np.mean(np.array(paddle_weights), axis=0)
+            prev_avr_weights = [round(w, 2) for w in avg_weights.tolist()]
+        else:
+            avg_weights = []
+
 
 
 def menu(canvas, clock):
