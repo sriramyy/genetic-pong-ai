@@ -1,7 +1,7 @@
 # Genetic Pong ML
 Pong using a genetic machine learning algorithm, implemented using PyGame
 
-<img src="https://github.com/user-attachments/assets/e95d3d4c-3302-423c-a258-498760de7380" alt="" style="width:50%; height:auto;">
+<img src="https://github.com/user-attachments/assets/fadb27b2-77b3-43ca-8653-4a06ff78549a" alt="" style="width:50%; height:auto;">
 
 ### General Instructions
 Choose gamemode you want to play by using the main menu. If you would like to go back to the main menu, use the `ESC` key, this will not save any progress from the previous activity. 
