@@ -14,10 +14,19 @@ SCREEN_WIDTH = 750
 SCREEN_HEIGHT = 450
 BACKGROUND_COLOR = (0,0,0)
 TEXT_COLOR = (100, 100, 100)
-FPS = 60
+FPS = 120
 # paddle constants -> in paddle.py
 # ball constants -> in ball.py
 # gamestate constants -> in gamestate.py
+
+# genetic training constants
+POPULATION = 100
+GENERATIONS = 300
+PADDLE_X = 50
+ELITISM_PERCENT = 0.05 # Carry over directly
+NORMAL_PERCENT = 0.20 # Carry over with mutation
+MUTATION_RATE = 0.15
+MUTATION_STRENGTH = 0.2 
 
 # text setup
 font = pygame.font.Font(None, 60)
@@ -184,12 +193,6 @@ def startGame(canvas, clock, type):
 def startAITraining(canvas, clock):
     """visualizes and runs the genetic algorithm AI simulation with a variable amount of paddles"""
 
-    POPULATION = 100
-    GENERATIONS = 50
-    PADDLE_X = 50
-    MUTATION_RATE = 0.1
-    MUTATION_STRENGTH = 0.5 
-
     # create initial population
     paddles = []
     for i in range(POPULATION):
@@ -200,6 +203,7 @@ def startAITraining(canvas, clock):
     prev_high_score = 0
     prev_avr_weights = []
     overall_high_score = (0, 0) # high score, generation achieved in 
+    all_scores = []
 
     for generation in range(GENERATIONS):
         # reset all paddles and the ball
@@ -215,7 +219,6 @@ def startAITraining(canvas, clock):
         frame = 0
         current_score = 0
         highest_score = 0
-        best_paddles = []
 
         while running and any(paddle.alive for paddle in paddles):
             for event in pygame.event.get():
@@ -289,57 +292,78 @@ def startAITraining(canvas, clock):
 
         # ---- GENETIC ALGORITHM ----
 
-        # finds and pritns best score
-        for paddle in paddles:
-            if paddle.score > highest_score:
-                highest_score = paddle.score
-                best_paddles.clear()
-                best_paddles.append(paddle)
-            elif paddle.score == highest_score:
-                best_paddles.append(paddle)
+        # sort paddles by score
+        paddles.sort(key=lambda p: p.score, reverse=True)
 
+        highest_score = paddles[0].score if paddles else 0
         prev_high_score = highest_score
 
         # check if this is the overall highest score
         if highest_score >= overall_high_score[0]:
             overall_high_score = (highest_score, generation+1)
 
-        print(f"Generation {generation+1}: Best Score = {highest_score}")
-        print(f"A total of {len(best_paddles)} paddles shared this high score")
 
-        # length of best_paddles -> number of parents
-        # so len(best_paddles)/POPULATION children per parent
-        children_per_parent = int(POPULATION/len(best_paddles))
+        # -- PARENT SELECTION --
+        new_paddles = []
 
-        # clear the paddles
-        paddles.clear()
+        # using elitism, carrying over top xx% of paddles DIRECTLY
+        num_elites = max(1, int(POPULATION*ELITISM_PERCENT))
 
-        paddle_weights = []
+        for i in range(min(num_elites, len(paddles))):
+            if len(new_paddles) < POPULATION:
+                elite_child = AIPaddle(PADDLE_X, (SCREEN_HEIGHT - Paddle.height)//2, paddles[i].color, paddles[i].weights[:])
+                new_paddles.append(elite_child)
 
-        for paddle in best_paddles:
-            # set a color for this parent
-            color = (random.uniform(0,255), random.uniform(0,255), random.uniform(0,255), 70)
-            # print the parent weights
-            paddle_weights.append(paddle.weights)
-            for child in range(children_per_parent):
-                new_weights = paddle.mutate(MUTATION_RATE, MUTATION_STRENGTH)
-                new_paddle = AIPaddle(PADDLE_X, (SCREEN_HEIGHT - Paddle.height)//2, color, new_weights)
-                paddles.append(new_paddle)
+        # now carry over top xx% with mutation
+        num_potential_parents = max(2, int(POPULATION*NORMAL_PERCENT))
+        potential_parents = paddles[:min(num_potential_parents, len(paddles))]
         
-        # calculate average weights
-        # Calculate average weights for each weight index across all best paddles
-        if paddle_weights:
-            avg_weights = np.mean(np.array(paddle_weights), axis=0)
-            prev_avr_weights = [round(w, 2) for w in avg_weights.tolist()]
+        # calc average weight of parents
+        if potential_parents:
+            parent_weights_list = [p.weights for p in potential_parents]
+            avg_weights = np.mean(np.array(parent_weights_list), axis=0)
+            prev_avr_weights = [round(w,2) for w in avg_weights.tolist()]
+        
+        # generate remaining mutated children
+        children_to_generate = POPULATION - len(new_paddles)
+        
+        if potential_parents:
+            for _ in range(children_to_generate):
+                parent = random.choice(potential_parents)
+                new_weights = parent.mutate(MUTATION_RATE, MUTATION_STRENGTH)
+                child_color = parent.color
+                child_paddle = AIPaddle(PADDLE_X, (SCREEN_HEIGHT - Paddle.height)//2, child_color, new_weights)
+                new_paddles.append(child_paddle)
         else:
-            avg_weights = []
+            # in case there are no paddles to mutate from
+            print(f"No paddles to mutate from. Creating new random paddles for Generation {generation+1}")
+            for _ in range(children_to_generate):
+                color = (random.uniform(0,255), random.uniform(0,255), random.uniform(0,255), 70)
+                child_paddle = AIPaddle(PADDLE_X, (SCREEN_HEIGHT - Paddle.height)//2, color=color)
+                new_paddles.append(child_paddle)
+        
+
+        # print stats to console
+        print(f"Generation {generation+1} Statistics --------------")
+        hs_flag = "*HS*" if highest_score == overall_high_score[0] else ""
+        print(f" - Score: {highest_score} {hs_flag}")
+        num_high_scorers = sum(1 for p in paddles if p.score == highest_score)
+        print(f" - {num_high_scorers} paddle(s) shared this score")
+        print(f" - AVWG: {avg_weights}")
+        all_scores.append(highest_score)
+
+
+        paddles = new_paddles[:POPULATION]
+
+    print("--- ALL SCORES ---")
+    print(all_scores)
 
 
 
 def menu(canvas, clock):
     """function for the menu, launches game directly"""
     # text setup
-    menu_text = font.render("Genetic Pong AI", True, (255,255,255))
+    menu_text = font.render("Genetic Pong ML", True, (255,255,255))
     menu_text_rect = menu_text.get_rect()
     menu_text_rect.center = (SCREEN_WIDTH//2 , SCREEN_HEIGHT//5)
 
@@ -359,7 +383,7 @@ def menu(canvas, clock):
     practice_text = player_font.render("Practice", True, button_text_color)
     practice_text_rect = practice_text.get_rect(center=practice_rect.center)
 
-    ai_training_text = player_font.render("AI Training", True, button_text_color)
+    ai_training_text = player_font.render("ML Training", True, button_text_color)
     ai_training_text_rect = ai_training_text.get_rect(center=ai_training_rect.center)
 
     # menu loop

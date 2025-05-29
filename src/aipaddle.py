@@ -44,7 +44,7 @@ class AIPaddle(Paddle):
         angle = math.atan2(dist_y, dist_x)
         ball_y = ball.rect.centery
         ball_dy = ball.dy
-        ball_x = ball.rect.centery
+        ball_x = ball.rect.centerx
         ball_dx = ball.dx
         paddle_y = self.y_pos
 
@@ -52,9 +52,13 @@ class AIPaddle(Paddle):
         # calculate inputs with weights
         s = sum (w*i for w, i in zip(self.weights[:-1], inputs)) + self.weights[-1]
 
-        if s > 0.5:   return 1  # UP
-        elif s < 0.5: return -1 # DOWN
-        else:         return 0  # STAY
+        THRESHOLD = 0.2 #  0.1 0.2 0.3
+        if s > THRESHOLD:  # strongly positive
+            return 1  # Move Down
+        elif s < -THRESHOLD: # strongly negative
+            return -1 # Move Up
+        else: #  weak (close to zero)
+            return 0  # Stay
 
     def mutate(self, rate=0.1, strength=0.5):
         """radomly mutate weights for genetic evolution"""
