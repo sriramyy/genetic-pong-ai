@@ -1,7 +1,7 @@
-# Genetic Pong AI
-Pong using a genetic machine learning algorithm, implemented using PyGame
+# Genetic Pong ML
+Pong using a genetic machine learning algorithm (with elitism approach), implemented using PyGame
 
-<img src="https://github.com/user-attachments/assets/e95d3d4c-3302-423c-a258-498760de7380" alt="" style="width:50%; height:auto;">
+<img src="https://github.com/user-attachments/assets/fadb27b2-77b3-43ca-8653-4a06ff78549a" alt="" style="width:50%; height:auto;">
 
 ### General Instructions
 Choose gamemode you want to play by using the main menu. If you would like to go back to the main menu, use the `ESC` key, this will not save any progress from the previous activity. 
@@ -23,7 +23,7 @@ Can play the pong base game with two different gamemodes
 *main.py constants*
 - `SCREEN_WIDTH`
 - `SCREEN_HEIGHT`
-- `FPS`
+- `FPS` -> change to make the simulation faster/slower
 
 *ball.py constants*
 - `speed_x`
@@ -35,7 +35,8 @@ Can play the pong base game with two different gamemodes
 - `speed`
 
 ## Genetic Algorithm Mode
-Trains a genetic AI model to play the game.
+Trains a genetic ML model to play the game (simple perceptron model).
+Uses a Elitism approach, copies xx% of top paddles DIRECTLY then copies the remaining top xx% of other paddles with mutations.
 
 ![image](https://github.com/user-attachments/assets/1e933114-0fdd-4b60-84ff-7bff982c9c57)
 
@@ -58,9 +59,11 @@ Trains a genetic AI model to play the game.
 
 Based on the above weights, `think` function returns a -1 (down), 1 (up), or 0 (stay).
 
-### AI Training Constants
+### ML Training Constants
 - `POPULATION` - paddles simulated each generation
 - `GENERATIONS` - total number of generations simulated
 - `PADDLE_X` - starting X of paddle
+- `ELITISM_PERCENTAGE` - carry over DIRECTLY
+- `NORMAL_PERCENTAGE` - carry over with mutations
 - `MUTATION_RATE` - how many paddles mutated (random)
 - `MUTATION_STRENGTH` - range of how much the mutated paddles differ from original
